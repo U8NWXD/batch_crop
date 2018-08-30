@@ -231,6 +231,9 @@ class BatchCropper(tk.Frame):
                 return True
             else:
                 return True
+        else:
+            cropped.save(new_path, "jpeg")
+            return True
 
 
 if __name__ == "__main__":
