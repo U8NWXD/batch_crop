@@ -34,7 +34,7 @@ class BatchCropper(tk.Frame):
                                 height=image.size[1])
         self.canvas.pack()
         self.image = ImageTk.PhotoImage(image)
-        self.canvas.create_image(0, 0, anchor="ne", image=self.image)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.image)
 
         self.canvas.bind("<ButtonPress-1>", self.callback_mouse_down)
         self.canvas.bind("<B1-Motion>", self.callback_mouse_move)
