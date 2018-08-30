@@ -18,6 +18,7 @@ import tkinter as tk
 import rawpy
 import os
 from tkinter.filedialog import askopenfilename
+from tkinter import messagebox
 from os.path import isfile, join
 from PIL import Image, ImageTk
 from sys import argv, exit
@@ -47,24 +48,39 @@ class BatchCropper(tk.Frame):
         self.canvas.bind("<B1-Motion>", self.callback_mouse_move)
         self.canvas.bind("<ButtonRelease-1>", self.callback_mouse_up)
 
-        self.button_submit = tk.Button(self.window, text="Crop All",
+        self.button_submit = tk.Button(self.window,
+                                       text="Crop all matching images",
                                        command=self.crop_all_files)
         self.button_load_image = tk.Button(self.window, text="Load Image",
                                            command=self.callback_load_image)
-        self.label_dir_path = tk.Label(self.window,
-                                       text="Please select an image")
+        self.label_instructions = tk.Label(self.window, text="Select an Image")
+        self.label_dir = tk.Label(self.window, text="")
+        self.label_ext = tk.Label(self.window, text="")
+        self.label_dir_label = tk.Label(self.window,
+                                        text="Directory of Images to Crop: ")
+        self.label_ext_label = tk.Label(self.window,
+                                        text="Extension of Images to Crop: ")
 
         # Arrange UI elements
-        self.button_load_image.grid(row=0, column=0)
-        self.label_dir_path.grid(row=0, column=1)
-        self.canvas.grid(row=1, column=0, columnspan=2)
-        self.button_submit.grid(row=2, column=0)
+        self.label_instructions.grid(row=0, column=0, columnspan=2)
+
+        self.label_dir_label.grid(row=1, column=0)
+        self.label_dir.grid(row=1, column=1)
+
+        self.label_ext_label.grid(row=2, column=0)
+        self.label_ext.grid(row=2, column=1)
+
+        self.button_load_image.grid(row=3, column=0)
+        self.button_submit.grid(row=4, column=0)
+
+        self.canvas.grid(row=3, column=1, rowspan=2)
 
     def callback_load_image(self):
         chosen = askopenfilename()
         dir_path = os.path.dirname(chosen)
-        self.label_dir_path.configure(text=dir_path)
+        self.label_dir.configure(text=dir_path)
         _, extension = os.path.splitext(chosen)
+        self.label_ext.configure(text=extension)
         items = os.listdir(dir_path)
         files = [item for item in items if isfile(join(dir_path, item))]
         crop_names = [file for file in files if file.endswith(extension)]
@@ -74,6 +90,7 @@ class BatchCropper(tk.Frame):
         image_resized = self.scale_image(image_raw)
 
         self.image_tk = self.display_image(image_resized)
+        self.label_instructions.configure(text="Select Region to Crop")
 
     def display_image(self, image):
         image_tk = ImageTk.PhotoImage(image)
@@ -113,6 +130,7 @@ class BatchCropper(tk.Frame):
     def callback_mouse_up(self, event):
         self.end_x = event.x
         self.end_y = event.y
+        self.label_instructions.configure(text="Re-select Region or Crop All")
 
     @staticmethod
     def open_image(path):
@@ -131,11 +149,16 @@ class BatchCropper(tk.Frame):
             mat = raw.postprocess()
         return Image.fromarray(mat)
 
-    def crop_all_files(self):
-        for path in self.to_crop:
-            self.crop_file(path)
+    def crop_all_files(self) -> None:
+        if self.end_x is None or self.end_y is None:
+            messagebox.showerror("Error", "Please select a region to crop.")
+        else:
+            for path in self.to_crop:
+                continue_cropping = self.crop_file(path)
+                if not continue_cropping:
+                    return
 
-    def crop_file(self, path):
+    def crop_file(self, path) -> bool:
         to_crop = BatchCropper.open_image(path)
 
         left = min(self.start_x, self.end_x)
@@ -145,7 +168,18 @@ class BatchCropper(tk.Frame):
         box = left, upper, right, lower
 
         cropped = to_crop.crop(tuple([val / self.scale_factor for val in box]))
-        cropped.save(path + "_cropped.jpg", "jpeg")
+        new_path = path + "_cropped.jpg"
+        if os.path.exists(new_path):
+            message = "The file '{}' already exists. Overwrite with new " \
+                      "crop? Select 'Cancel' to abort, 'No' to skip, or " \
+                      "'Yes' to overwrite."
+            message = message.format(new_path)
+            choice = messagebox.askyesnocancel("Overwrite Warning", message)
+            if choice is None:
+                return False
+            elif choice:
+                cropped.save(new_path, "jpeg")
+                return True
 
 
 if __name__ == "__main__":
