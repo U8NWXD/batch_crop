@@ -14,7 +14,7 @@ A Python utility for batch cropping images
 
 ## Usage
 
-`python batch_crop.py dir_path extension`
+`python batch_crop.py`
 
 For example, consider a directory that looks like this:
 ```
@@ -25,11 +25,12 @@ images
 ```
 (output from `tree`)
 
-Running `python batch_crop.py images ARW` opens a window displaying either
-`img1.ARW` or `img2.ARW`. You can then click-and-drag to draw a box on the
-image. When happy with the selection, click `Crop All` to crop all images with
-the `ARW` extension to the box drawn. This creates a directory that looks like 
-this:
+Running `python batch_crop.py` opens a window with a button to `Load Image`.
+Clicking that and selecting either `img1.ARW` or `img2.ARW` loads the selected
+image into the window. You can then click-and-drag to draw a box on the
+image. When happy with the selection, click `Crop All Matching Images` to crop 
+all images in the `images` directory with the `ARW` extension to the box drawn. 
+This creates a directory that looks like this:
 
 ```
 images

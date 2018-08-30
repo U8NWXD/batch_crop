@@ -25,6 +25,29 @@ from sys import argv, exit
 from typing import List
 
 
+def display_block(title, content):
+    def close():
+        second.destroy()
+
+    second = tk.Tk()
+    second.wm_title(title)
+
+    S = tk.Scrollbar(second)
+    T = tk.Text(second, height=30, width=100, wrap='word')
+    B = tk.Button(second, text='Close', command=close)
+
+    S.pack(side=tk.RIGHT, fill=tk.Y)
+    T.pack(side=tk.LEFT, fill=tk.Y)
+    B.pack(side=tk.BOTTOM)
+
+    S.config(command=T.yview)
+    T.config(yscrollcommand=S.set)
+
+    T.insert(tk.END, content)
+
+    second.mainloop()
+
+
 class BatchCropper(tk.Frame):
     # INSPIRATION: fhdrsdg https://stackoverflow.com/a/29797178
     def __init__(self, window):
@@ -49,15 +72,22 @@ class BatchCropper(tk.Frame):
         self.canvas.bind("<ButtonRelease-1>", self.callback_mouse_up)
 
         self.button_submit = tk.Button(self.window,
-                                       text="Crop all matching images",
+                                       text="Crop All Matching Images",
                                        command=self.crop_all_files)
+        self.button_quit = tk.Button(self.window, text="Quit",
+                                     command=BatchCropper.callback_quit)
+        self.button_about = tk.Button(self.window, text="About",
+                                      command=BatchCropper.callback_about)
         self.button_load_image = tk.Button(self.window, text="Load Image",
                                            command=self.callback_load_image)
+        self.button_license = tk.Button(self.window, text="License",
+                                        command=BatchCropper.callback_license)
+
         self.label_instructions = tk.Label(self.window, text="Select an Image")
         self.label_dir = tk.Label(self.window, text="")
-        self.label_ext = tk.Label(self.window, text="")
         self.label_dir_label = tk.Label(self.window,
                                         text="Directory of Images to Crop: ")
+        self.label_ext = tk.Label(self.window, text="")
         self.label_ext_label = tk.Label(self.window,
                                         text="Extension of Images to Crop: ")
 
@@ -72,8 +102,11 @@ class BatchCropper(tk.Frame):
 
         self.button_load_image.grid(row=3, column=0)
         self.button_submit.grid(row=4, column=0)
+        self.button_about.grid(row=5, column=0)
+        self.button_license.grid(row=6, column=0)
+        self.button_quit.grid(row=7, column=0)
 
-        self.canvas.grid(row=3, column=1, rowspan=2)
+        self.canvas.grid(row=3, column=1, rowspan=5)
 
     def callback_load_image(self):
         chosen = askopenfilename()
@@ -86,7 +119,7 @@ class BatchCropper(tk.Frame):
         crop_names = [file for file in files if file.endswith(extension)]
         self.to_crop = [join(dir_path, name) for name in crop_names]
 
-        image_raw = BatchCropper.open_image(self.to_crop[0])
+        image_raw = BatchCropper.open_image(chosen)
         image_resized = self.scale_image(image_raw)
 
         self.image_tk = self.display_image(image_resized)
@@ -123,6 +156,22 @@ class BatchCropper(tk.Frame):
 
         if self.end_x is None and self.end_y is None:
             self.resize_rect(self.start_x, self.start_y, cur_x, cur_y)
+
+    @staticmethod
+    def callback_quit():
+        exit(0)
+
+    @staticmethod
+    def callback_about():
+        with open("about.txt", "r") as f:
+            about_text = f.read()
+        display_block("About", about_text)
+
+    @staticmethod
+    def callback_license():
+        with open("LICENSE.txt", "r") as f:
+            license_text = f.read()
+        display_block("License", license_text)
 
     def resize_rect(self, x1, y1, x2, y2):
         self.canvas.coords(self.rect, x1, y1, x2, y2)
