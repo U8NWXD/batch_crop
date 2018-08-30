@@ -17,6 +17,7 @@
 import tkinter as tk
 import rawpy
 import os
+from tkinter.filedialog import askopenfilename
 from os.path import isfile, join
 from PIL import Image, ImageTk
 from sys import argv, exit
@@ -25,21 +26,19 @@ from typing import List
 
 class BatchCropper(tk.Frame):
     # INSPIRATION: fhdrsdg https://stackoverflow.com/a/29797178
-    def __init__(self, window, image, to_crop: List[str]):
+    def __init__(self, window):
         tk.Frame.__init__(self, window)
         self.window = window
-        self.to_crop = to_crop
 
         # Initialize instance fields for later
         self.scale_factor = 1
         self.image_tk = None
+        self.to_crop = None
         self.start_x = None
         self.start_y = None
         self.end_x = None
         self.end_y = None
         self.rect = None
-
-        self.image_resized = self.scale_image(image)
 
         self.canvas = tk.Canvas(self.window, width=500, height=500)
         self.canvas.pack()
@@ -48,26 +47,33 @@ class BatchCropper(tk.Frame):
         self.canvas.bind("<B1-Motion>", self.callback_mouse_move)
         self.canvas.bind("<ButtonRelease-1>", self.callback_mouse_up)
 
-        # self.callback_load_image()
-
         self.button_submit = tk.Button(self.window, text="Crop All",
                                        command=self.crop_all_files)
         self.button_load_image = tk.Button(self.window, text="Load Image",
                                            command=self.callback_load_image)
+        self.label_dir_path = tk.Label(self.window,
+                                       text="Please select an image")
 
         # Arrange UI elements
         self.button_load_image.grid(row=0, column=0)
+        self.label_dir_path.grid(row=0, column=1)
         self.canvas.grid(row=1, column=0, columnspan=2)
         self.button_submit.grid(row=2, column=0)
 
-    @classmethod
-    def from_file(cls, window, path, to_crop: List[str]):
-        image = BatchCropper.open_image(path)
-        return cls(window, image, to_crop)
-
     def callback_load_image(self):
+        chosen = askopenfilename()
+        dir_path = os.path.dirname(chosen)
+        self.label_dir_path.configure(text=dir_path)
+        _, extension = os.path.splitext(chosen)
+        items = os.listdir(dir_path)
+        files = [item for item in items if isfile(join(dir_path, item))]
+        crop_names = [file for file in files if file.endswith(extension)]
+        self.to_crop = [join(dir_path, name) for name in crop_names]
 
-        self.image_tk = self.display_image(self.image_resized)
+        image_raw = BatchCropper.open_image(self.to_crop[0])
+        image_resized = self.scale_image(image_raw)
+
+        self.image_tk = self.display_image(image_resized)
 
     def display_image(self, image):
         image_tk = ImageTk.PhotoImage(image)
@@ -143,18 +149,7 @@ class BatchCropper(tk.Frame):
 
 
 if __name__ == "__main__":
-    if len(argv) != 3:
-        print("Invalid parameters. Usage: batch_crop.py dir_path extension")
-        exit(1)
-
-    dir_path = os.path.abspath(argv[1])
-    extension = argv[2]
-    items = os.listdir(dir_path)
-    files = [item for item in items if isfile(join(dir_path, item))]
-    crop_names = [file for file in files if file.endswith("." + extension)]
-    crop_paths = [join(dir_path, name) for name in crop_names]
-
     master = tk.Tk()
-    app = BatchCropper.from_file(master, crop_paths[0], crop_paths)
+    app = BatchCropper(master)
     app.master.title("batch_crop")
     master.mainloop()
