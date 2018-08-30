@@ -93,9 +93,9 @@ class BatchCropper(tk.Frame):
 
     @staticmethod
     def open_image(path):
-        ext, base = os.path.splitext(path)
+        base, ext = os.path.splitext(path)
         ext = ext.lower()
-        if ext == "arw" or ext == "raw":
+        if ext == ".arw" or ext == ".raw":
             image = BatchCropper.open_raw_image(path)
         else:
             image = Image.open(path)
