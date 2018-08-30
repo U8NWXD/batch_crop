@@ -27,42 +27,59 @@ class BatchCropper(tk.Frame):
     # INSPIRATION: fhdrsdg https://stackoverflow.com/a/29797178
     def __init__(self, window, image, to_crop: List[str]):
         tk.Frame.__init__(self, window)
+        self.window = window
         self.to_crop = to_crop
+
+        # Initialize instance fields for later
         self.scale_factor = 1
-        image = self.scale_image(image)
-        self.canvas = tk.Canvas(window, width=image.size[0],
-                                height=image.size[1])
-        self.canvas.pack()
-        self.image = ImageTk.PhotoImage(image)
-        self.canvas.create_image(0, 0, anchor="nw", image=self.image)
-
-        self.canvas.bind("<ButtonPress-1>", self.callback_mouse_down)
-        self.canvas.bind("<B1-Motion>", self.callback_mouse_move)
-        self.canvas.bind("<ButtonRelease-1>", self.callback_mouse_up)
-
+        self.image_tk = None
         self.start_x = None
         self.start_y = None
         self.end_x = None
         self.end_y = None
         self.rect = None
 
-        self.button_submit = tk.Button(window, text="Crop All",
-                                       command=self.crop_all_files)
+        self.image_resized = self.scale_image(image)
 
-        self.canvas.grid(row=0, column=0)
-        self.button_submit.grid(row=1, column=0)
+        self.canvas = tk.Canvas(self.window, width=500, height=500)
+        self.canvas.pack()
+
+        self.canvas.bind("<ButtonPress-1>", self.callback_mouse_down)
+        self.canvas.bind("<B1-Motion>", self.callback_mouse_move)
+        self.canvas.bind("<ButtonRelease-1>", self.callback_mouse_up)
+
+        # self.callback_load_image()
+
+        self.button_submit = tk.Button(self.window, text="Crop All",
+                                       command=self.crop_all_files)
+        self.button_load_image = tk.Button(self.window, text="Load Image",
+                                           command=self.callback_load_image)
+
+        # Arrange UI elements
+        self.button_load_image.grid(row=0, column=0)
+        self.canvas.grid(row=1, column=0, columnspan=2)
+        self.button_submit.grid(row=2, column=0)
 
     @classmethod
     def from_file(cls, window, path, to_crop: List[str]):
         image = BatchCropper.open_image(path)
         return cls(window, image, to_crop)
 
-    def scale_image(self, image):
-        scale_factor = 500 / max(image.size[0], image.size[1])
+    def callback_load_image(self):
+
+        self.image_tk = self.display_image(self.image_resized)
+
+    def display_image(self, image):
+        image_tk = ImageTk.PhotoImage(image)
+        self.canvas.create_image(0, 0, anchor="nw", image=image_tk)
+        return image_tk
+
+    def scale_image(self, image_raw):
+        scale_factor = 500 / max(image_raw.size[0], image_raw.size[1])
         self.scale_factor = scale_factor
-        new_width = int(image.size[0] * scale_factor)
-        new_height = int(image.size[1] * scale_factor)
-        return image.resize((new_width, new_height))
+        new_width = int(image_raw.size[0] * scale_factor)
+        new_height = int(image_raw.size[1] * scale_factor)
+        return image_raw.resize((new_width, new_height))
 
     def callback_mouse_down(self, event):
         self.start_x = event.x
