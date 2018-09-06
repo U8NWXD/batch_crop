@@ -17,12 +17,12 @@
 import tkinter as tk
 import rawpy
 import os
-from tkinter.filedialog import askopenfilename
+import configparser
+from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
 from os.path import isfile, join
 from PIL import Image, ImageTk
-from sys import argv, exit
-from typing import List
+from sys import exit
 
 
 def display_block(title, content):
@@ -72,17 +72,21 @@ class BatchCropper(tk.Frame):
         self.canvas.bind("<B1-Motion>", self.callback_mouse_move)
         self.canvas.bind("<ButtonRelease-1>", self.callback_mouse_up)
 
+        self.button_load_image = tk.Button(self.window, text="Load Image",
+                                           command=self.callback_load_image)
+        self.button_load_coors = tk.Button(self.window, text="Load Coordinates",
+                                           command=self.callback_load_coors)
+        self.button_save_coors = tk.Button(self.window, text="Save Coordinates",
+                                           command=self.callback_save_coors)
         self.button_submit = tk.Button(self.window,
                                        text="Crop All Matching Images",
                                        command=self.crop_all_files)
-        self.button_quit = tk.Button(self.window, text="Quit",
-                                     command=BatchCropper.callback_quit)
         self.button_about = tk.Button(self.window, text="About",
                                       command=BatchCropper.callback_about)
-        self.button_load_image = tk.Button(self.window, text="Load Image",
-                                           command=self.callback_load_image)
         self.button_license = tk.Button(self.window, text="License",
                                         command=BatchCropper.callback_license)
+        self.button_quit = tk.Button(self.window, text="Quit",
+                                     command=BatchCropper.callback_quit)
 
         self.label_instructions = tk.Label(self.window, text="Select an Image")
         self.label_dir = tk.Label(self.window, text="")
@@ -102,12 +106,14 @@ class BatchCropper(tk.Frame):
         self.label_ext.grid(row=2, column=1)
 
         self.button_load_image.grid(row=3, column=0)
-        self.button_submit.grid(row=4, column=0)
-        self.button_about.grid(row=5, column=0)
-        self.button_license.grid(row=6, column=0)
-        self.button_quit.grid(row=7, column=0)
+        self.button_load_coors.grid(row=4, column=0)
+        self.button_save_coors.grid(row=5, column=0)
+        self.button_submit.grid(row=6, column=0)
+        self.button_about.grid(row=7, column=0)
+        self.button_license.grid(row=8, column=0)
+        self.button_quit.grid(row=9, column=0)
 
-        self.canvas.grid(row=3, column=1, rowspan=5)
+        self.canvas.grid(row=3, column=1, rowspan=7)
 
     def callback_load_image(self):
         chosen = askopenfilename()
@@ -140,18 +146,108 @@ class BatchCropper(tk.Frame):
         new_height = int(image_raw.size[1] * scale_factor)
         return image_raw.resize((new_width, new_height))
 
+    @staticmethod
+    def coor_to_box(start_x, start_y, end_x, end_y):
+        left = min(start_x, end_x)
+        right = max(start_x, end_x)
+        upper = min(start_y, end_y)
+        lower = max(start_y, end_y)
+
+        return left, upper, right, lower
+
+    def get_coors_ratios(self):
+        x1 = self.start_x
+        y1 = self.start_y
+        x2 = self.end_x
+        y2 = self.end_y
+
+        x1, x2 = tuple([val / (self.orig_size[0] * self.scale_factor)
+                        for val in (x1, x2)])
+        y1, y2 = tuple([val / (self.orig_size[1] * self.scale_factor)
+                        for val in (y1, y2)])
+        return x1, y1, x2, y2
+
+    def set_coors_ratios(self, start_x, start_y, end_x, end_y):
+        start_x, end_x = tuple([ratio * (self.orig_size[0] * self.scale_factor)
+                                for ratio in (start_x, end_x)])
+        start_y, end_y = tuple([ratio * (self.orig_size[1] * self.scale_factor)
+                                for ratio in (start_y, end_y)])
+
+        self.start_x = start_x
+        self.start_y = start_y
+        self.end_x = end_x
+        self.end_y = end_y
+
+    def callback_save_coors(self):
+        if self.to_crop is None:
+            messagebox.showerror("Error", "Please load an image first.")
+            return
+        if self.end_x is None:
+            messagebox.showerror("Error", "Please select a region first.")
+            return
+
+        start_x, start_y, end_x, end_y = self.get_coors_ratios()
+
+        config = configparser.ConfigParser()
+        config["crop-coordinates"] = {"start_x": start_x, "start_y": start_y,
+                                      "end_x": end_x, "end_y": end_y}
+        dir = os.path.dirname(self.to_crop[0])
+        path = asksaveasfilename(title="Save Coordinates File",
+                                 defaultextension=".ini",
+                                 initialdir=dir)
+        if isfile(path):
+            message = "'{}' already exists. Do you want to replace it?"\
+                .format(path)
+            if not messagebox.askyesno("Overwrite Warning", message):
+                return
+        with open(path, "w") as configfile:
+            config.write(configfile)
+
+    def callback_load_coors(self):
+        if self.to_crop is None:
+            messagebox.showerror("Error", "Please load an image first.")
+            return
+
+        dir = os.path.dirname(self.to_crop[0])
+        path = askopenfilename(title="Select Coordinates File",
+                               filetypes=[("INI", "*.ini")],
+                               initialdir=dir)
+
+        config = configparser.ConfigParser()
+        config.read(path)
+        try:
+            coor_conf = config["crop-coordinates"]
+        except KeyError:
+            messagebox.showerror("Error", "'{}' could not be parsed".
+                                 format(path))
+            return
+        # Remember these are fractions of the total image dimensions
+        start_x = float(coor_conf.getfloat("start_x", fallback=-1))
+        start_y = float(coor_conf.getfloat("start_y", fallback=-1))
+        end_x = float(coor_conf.getfloat("end_x", fallback=-1))
+        end_y = float(coor_conf.getfloat("end_y", fallback=-1))
+
+        if start_x == -1 or start_y == -1 or end_x == -1 or end_y == -1:
+            messagebox.showerror("Error", "'{}' could not be parsed.".
+                                 format(path))
+
+        self.set_coors_ratios(start_x, start_y, end_x, end_y)
+
+        self.make_or_reuse_rect(self.start_x, self.start_y)
+        self.resize_rect(self.start_x, self.start_y, self.end_x, self.end_y)
+
     def callback_mouse_down(self, event):
         self.start_x = event.x
         self.start_y = event.y
         self.end_x = None
         self.end_y = None
+        self.make_or_reuse_rect(self.start_x, self.start_y)
+
+    def make_or_reuse_rect(self, x, y):
         if self.rect is None:
-            self.rect = self.canvas.create_rectangle(self.start_x, self.start_y,
-                                                     self.start_x, self.start_y,
-                                                     outline="red")
+            self.rect = self.canvas.create_rectangle(x, y, x, y, outline="red")
         else:
-            self.resize_rect(self.start_x, self.start_y,
-                             self.start_x, self.start_y)
+            self.resize_rect(x, y, x, y)
 
     def callback_mouse_move(self, event):
         cur_x = event.x
@@ -213,10 +309,9 @@ class BatchCropper(tk.Frame):
     def crop_file(self, path) -> bool:
         to_crop = BatchCropper.open_image(path)
 
-        left = min(self.start_x, self.end_x)
-        right = max(self.start_x, self.end_x)
-        upper = min(self.start_y, self.end_y)
-        lower = max(self.start_y, self.end_y)
+        left, upper, \
+        right, lower = BatchCropper.coor_to_box(self.start_x, self.start_y,
+                                                self.end_x, self.end_y)
 
         left, upper, right, lower = tuple([val / self.scale_factor for val in
                                            (left, upper, right, lower)])
