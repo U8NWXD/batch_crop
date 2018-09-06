@@ -113,10 +113,11 @@ class BatchCropper(tk.Frame):
         dir_path = os.path.dirname(chosen)
         self.label_dir.configure(text=dir_path)
         _, extension = os.path.splitext(chosen)
+        extension = extension.lower()
         self.label_ext.configure(text=extension)
         items = os.listdir(dir_path)
         files = [item for item in items if isfile(join(dir_path, item))]
-        crop_names = [file for file in files if file.endswith(extension)]
+        crop_names = [file for file in files if file.lower().endswith(extension)]
         self.to_crop = [join(dir_path, name) for name in crop_names]
 
         image_raw = BatchCropper.open_image(chosen)
