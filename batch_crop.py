@@ -196,11 +196,7 @@ class BatchCropper(tk.Frame):
         path = asksaveasfilename(title="Save Coordinates File",
                                  defaultextension=".ini",
                                  initialdir=dir)
-        if isfile(path):
-            message = "'{}' already exists. Do you want to replace it?"\
-                .format(path)
-            if not messagebox.askyesno("Overwrite Warning", message):
-                return
+
         header = ["This file stores the coordinates of a selection made with",
                   "batch_crop.py, which is hosted at",
                   "https://github.com/U8NWXD/batch_crop",
