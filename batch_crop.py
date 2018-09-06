@@ -63,6 +63,7 @@ class BatchCropper(tk.Frame):
         self.end_x = None
         self.end_y = None
         self.rect = None
+        self.orig_size = None
 
         self.canvas = tk.Canvas(self.window, width=500, height=500)
         self.canvas.pack()
@@ -121,6 +122,7 @@ class BatchCropper(tk.Frame):
         self.to_crop = [join(dir_path, name) for name in crop_names]
 
         image_raw = BatchCropper.open_image(chosen)
+        self.orig_size = image_raw.size
         image_resized = self.scale_image(image_raw)
 
         self.image_tk = self.display_image(image_resized)
@@ -215,9 +217,15 @@ class BatchCropper(tk.Frame):
         right = max(self.start_x, self.end_x)
         upper = min(self.start_y, self.end_y)
         lower = max(self.start_y, self.end_y)
-        box = left, upper, right, lower
 
-        cropped = to_crop.crop(tuple([val / self.scale_factor for val in box]))
+        left, upper, right, lower = tuple([val / self.scale_factor for val in
+                                           (left, upper, right, lower)])
+        left, right = tuple([val * to_crop.size[0] / self.orig_size[0]
+                             for val in (left, right)])
+        upper, lower = tuple([val * to_crop.size[1] / self.orig_size[1]
+                              for val in (upper, lower)])
+
+        cropped = to_crop.crop((left, upper, right, lower))
         new_path = path + "_cropped.jpg"
         if os.path.exists(new_path):
             message = "The file '{}' already exists. Overwrite with new " \
