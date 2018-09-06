@@ -18,6 +18,7 @@ import tkinter as tk
 import rawpy
 import os
 import configparser
+from datetime import datetime
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
 from os.path import isfile, join
@@ -200,7 +201,12 @@ class BatchCropper(tk.Frame):
                 .format(path)
             if not messagebox.askyesno("Overwrite Warning", message):
                 return
+        header = ["This file stores the coordinates of a selection made with",
+                  "batch_crop.py, which is hosted at",
+                  "https://github.com/U8NWXD/batch_crop",
+                  "File Created: {}".format(datetime.now())]
         with open(path, "w") as configfile:
+            configfile.writelines(["# " + line + "\n" for line in header])
             config.write(configfile)
 
     def callback_load_coors(self):
