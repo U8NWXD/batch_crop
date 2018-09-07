@@ -1,5 +1,5 @@
-src
-===
+batch_crop
+==========
 
 .. toctree::
    :maxdepth: 4

@@ -137,7 +137,7 @@ class BatchCropper(tk.Frame):
                                            command=self.callback_save_coors)
         self.button_submit = tk.Button(self.window,
                                        text="Crop All Matching Images",
-                                       command=self.crop_all_files)
+                                       command=self.callback_crop)
         self.button_about = tk.Button(self.window, text="About",
                                       command=BatchCropper.callback_about)
         self.button_license = tk.Button(self.window, text="License",
@@ -197,9 +197,10 @@ class BatchCropper(tk.Frame):
                       if file.lower().endswith(extension)]
         self.to_crop = [join(dir_path, name) for name in crop_names]
 
-        image_raw = BatchCropper.open_image(chosen)
+        image_raw = open_image(chosen)
         self.orig_size = image_raw.size
-        image_resized = self.scale_image(image_raw)
+        self.scale_factor = get_scale_factor(500, image_raw)
+        image_resized = scale_image(self.scale_factor, image_raw)
 
         self.image_tk = self.display_image(image_resized)
         self.label_instructions.configure(text="Select Region to Crop")
@@ -218,116 +219,45 @@ class BatchCropper(tk.Frame):
         self.canvas.create_image(0, 0, anchor="nw", image=image_tk)
         return image_tk
 
-    def scale_image(self, image_raw: Image) -> Image:
-        """Scale the provided image to fit within a 500x500 box
-
-        The image's shape is not changed, the largest dimension is just forced
-        to be 500. The factor by which the image is scaled is stored as the
-        :py:attr:`scale_factor` attribute.
-
-        Args:
-            image_raw: The image to re-size
-
-        Returns:
-            The re-sized image
-
-        """
-        scale_factor = 500 / max(image_raw.size[0], image_raw.size[1])
-        self.scale_factor = scale_factor
-        new_width = int(image_raw.size[0] * scale_factor)
-        new_height = int(image_raw.size[1] * scale_factor)
-        return image_raw.resize((new_width, new_height))
-
-    @staticmethod
-    def coor_to_box(start_x: float, start_y: float, end_x: float, end_y: float)\
-            -> Tuple[float, float, float, float]:
-        """Convert start and end coors into left, upper, right, and lower bounds
-
-        This is useful for converting between the Tkinter concept of start
-        and end coordinates and the ``Image.crop(...)`` concept of bounds.
-
-        Args:
-            start_x: x-coordinate of one corner of the rectangle
-            start_y: y-coordinate of on corner of the rectangle
-            end_x: x-coordinate of the opposite corner of the rectangle
-            end_y: y-coordinate of the opposite corner of the rectangle
-
-        Returns:
-            A Tuple of bounds of the form
-
-            .. code-block:: python
-
-               left_bound, upper_bound, right_bound, lower_bound
-
-            that represents the region to crop. The bounds represent values on
-            the same coordinate system as normal.
-
-        """
-        left = min(start_x, end_x)
-        right = max(start_x, end_x)
-        upper = min(start_y, end_y)
-        lower = max(start_y, end_y)
-
-        return left, upper, right, lower
-
     def get_coors_ratios(self) -> Tuple[float, float, float, float]:
         """Get ratios that represent the coordinates of the current region
 
-        See :py:meth:`BatchCropper.set_coors_ratios` for an explanation of ratios.
+        For definitions of coordinates and ratios, see :doc:`units`
 
         Returns:
-            A Tuple of the ratios in the form
-
-            .. code-block:: python
-
-               x1, y1, x2, y2
-
-            where ``1`` denotes ``start`` and ``2`` denotes ``end``.
+            A box_ratio that represents the current region
 
         """
-        x1 = self.start_x
-        y1 = self.start_y
-        x2 = self.end_x
-        y2 = self.end_y
+        coors = self.start_x, self.start_y, self.end_x, self.end_y
 
-        x1, x2 = tuple([val / (self.orig_size[0] * self.scale_factor)
-                        for val in (x1, x2)])
-        y1, y2 = tuple([val / (self.orig_size[1] * self.scale_factor)
-                        for val in (y1, y2)])
-        return x1, y1, x2, y2
+        width, height = self.orig_size
+        disp_size = (width * self.scale_factor, height * self.scale_factor)
 
-    def set_coors_ratios(self, start_x: float, start_y: float, end_x: float,
-                         end_y: float) -> None:
+        return coors_to_ratios(disp_size, coors)
+
+    def set_coors_ratios(self, box_ratio: Tuple[float, float, float, float]) \
+            -> None:
         """Set the coordinates of the selected region from ratios
 
-        A ``ratio`` is expressed as a fraction of the appropriate dimension.
-        For example, an x-coordinate of ``30`` when the width is ``100`` is
-        expressed as a ratio as ``0.3``. This allows coordinates to be
-        transferred between images of varying dimensions.
+        For definitions of coordinates and ratios, see :doc:`units`
 
         This method accepts ratios and uses them to set the selection region
         to the proper displayed coordinates as if the user had selected the
         region.
 
         Args:
-            start_x: Ratio for the x-coordinate of one corner
-            start_y: Ratio for the y-coordinate of one corner
-            end_x: Ratio for the x-coordinate of the opposite corner
-            end_y: Ratio for the y-coordinate of the opposite corner
+            box_ratio: The ``box_ratio`` to use
 
         Returns:
             None
 
         """
-        start_x, end_x = tuple([ratio * (self.orig_size[0] * self.scale_factor)
-                                for ratio in (start_x, end_x)])
-        start_y, end_y = tuple([ratio * (self.orig_size[1] * self.scale_factor)
-                                for ratio in (start_y, end_y)])
+        width = self.orig_size[0] * self.scale_factor
+        height = self.orig_size[1] * self.scale_factor
+        size = (width, height)
 
-        self.start_x = start_x
-        self.start_y = start_y
-        self.end_x = end_x
-        self.end_y = end_y
+        coors = ratios_to_coors(size, box_ratio)
+        self.start_x, self.start_y, self.end_x, self.end_y = coors
 
     def callback_save_coors(self) -> None:
         """Save coordinates of the currently selected region to a file
@@ -336,35 +266,29 @@ class BatchCropper(tk.Frame):
         file. This coordinates can be later loaded using
         :py:meth:`BatchCropper.callback_load_coors`.
 
+        The coordinates are actually saved as a ``box_ratio``, which is
+        generated by :py:meth:`BatchCropper.get_coors_ratios`. The file is
+        created and saved by :py:meth:`save_ratios_to_file`.
+
+        Error dialogs are displayed if no image is loaded or if no region
+        is selected.
+
         Returns:
             None
 
         """
-        # TODO: Decompose this into UI and logic portions
         if self.to_crop is None:
             messagebox.showerror("Error", "Please load an image first.")
             return
-        if self.end_x is None:
+        if self.end_x is None or self.end_y is None:
             messagebox.showerror("Error", "Please select a region first.")
             return
 
-        start_x, start_y, end_x, end_y = self.get_coors_ratios()
-
-        config = configparser.ConfigParser()
-        config["crop-coordinates"] = {"start_x": start_x, "start_y": start_y,
-                                      "end_x": end_x, "end_y": end_y}
-        dir = os.path.dirname(self.to_crop[0])
+        box_ratio = self.get_coors_ratios()
         path = asksaveasfilename(title="Save Coordinates File",
                                  defaultextension=".ini",
-                                 initialdir=dir)
-
-        header = ["This file stores the coordinates of a selection made with",
-                  "batch_crop.py, which is hosted at",
-                  "https://github.com/U8NWXD/batch_crop",
-                  "File Created: {}".format(datetime.now())]
-        with open(path, "w") as configfile:
-            configfile.writelines(["# " + line + "\n" for line in header])
-            config.write(configfile)
+                                 initialdir=os.path.dirname(self.to_crop[0]))
+        save_ratios_to_file(box_ratio, path)
 
     def callback_load_coors(self) -> None:
         """Load coordinates for selected region from INI file
@@ -375,47 +299,41 @@ class BatchCropper(tk.Frame):
         specified in the file are used to create a region that is stored and
         displayed as if the user had selected it.
 
+        Error dialogs are displayed if no image is loaded or if the
+        configuration file cannot be parsed.
+
+        The configuration file is read with :py:meth:`get_ratios_from_file`,
+        which yields a ``box_ratio`` (see :doc:`units`) that is then loaded
+        using :py:meth:`BatchCropper.set_coors_ratios`.
+
         Returns:
             None
 
         """
-        # TODO: Decompose this into UI and logic portions
         if self.to_crop is None:
             messagebox.showerror("Error", "Please load an image first.")
             return
 
-        dir = os.path.dirname(self.to_crop[0])
         path = askopenfilename(title="Select Coordinates File",
                                filetypes=[("INI", "*.ini")],
-                               initialdir=dir)
+                               initialdir=os.path.dirname(self.to_crop[0]))
 
-        config = configparser.ConfigParser()
-        config.read(path)
         try:
-            coor_conf = config["crop-coordinates"]
+            ratios = get_ratios_from_file(path)
         except KeyError:
             messagebox.showerror("Error", "'{}' could not be parsed".
                                  format(path))
             return
-        # Remember these are fractions of the total image dimensions
-        start_x = float(coor_conf.getfloat("start_x", fallback=-1))
-        start_y = float(coor_conf.getfloat("start_y", fallback=-1))
-        end_x = float(coor_conf.getfloat("end_x", fallback=-1))
-        end_y = float(coor_conf.getfloat("end_y", fallback=-1))
 
-        if start_x == -1 or start_y == -1 or end_x == -1 or end_y == -1:
-            messagebox.showerror("Error", "'{}' could not be parsed.".
-                                 format(path))
-
-        self.set_coors_ratios(start_x, start_y, end_x, end_y)
-
+        self.set_coors_ratios(ratios)
         self.make_or_reuse_rect(self.start_x, self.start_y)
         self.resize_rect(self.start_x, self.start_y, self.end_x, self.end_y)
 
     def callback_mouse_down(self, event) -> None:
         """Start drawing out a rectangle
 
-        The rectangle is started using :py:meth:`BatchCropper.make_or_reuse_rect`.
+        The rectangle is started using
+        :py:meth:`BatchCropper.make_or_reuse_rect`.
 
         This callback is meant to be bound using
         Tkinter to the mouse move event. Tkinter will then pass the
@@ -495,7 +413,8 @@ class BatchCropper(tk.Frame):
     def callback_about() -> None:
         """Display the project's about text as stored in :file:about.txt
 
-        See :py:meth:`display_block` for the details of how the text is displayed.
+        See :py:meth:`display_block` for the details of how the text is
+        displayed.
 
         Returns:
             None
@@ -509,7 +428,8 @@ class BatchCropper(tk.Frame):
     def callback_license() -> None:
         """Display the project's license as stored in :file:LICENSE.txt
 
-        See :py:meth:`display_block` for the details of how the text is displayed.
+        See :py:meth:`display_block` for the details of how the text is
+        displayed.
 
         Returns:
             None
@@ -557,53 +477,11 @@ class BatchCropper(tk.Frame):
         self.end_y = event.y
         self.label_instructions.configure(text="Re-select Region or Crop All")
 
-    @staticmethod
-    def open_image(path: str) -> Image:
-        """Attempt to open an image, using a method appropriate for the format
+    def callback_crop(self) -> None:
+        """Trigger the cropping of all images
 
-        Supported image types: RAW / ARW and those supported by Pillow.
-        Errors are not handled. Format is determined by file extension.
-
-        Args:
-            path: Path to the image. Must correctly point to a supported image
-                type.
-
-        Returns:
-            A Pillow Image object loaded from ``path``
-
-        """
-        base, ext = os.path.splitext(path)
-        ext = ext.lower()
-        if ext == ".arw" or ext == ".raw":
-            image = BatchCropper.open_raw_image(path)
-        else:
-            image = Image.open(path)
-
-        return image
-
-    @staticmethod
-    def open_raw_image(path: str) -> Image:
-        """Open RAW-formatted image using ``rawpy``
-
-        No format checking or error handling is performed.
-
-        Args:
-            path: Path to the image. Must be correct.
-
-        Returns:
-            A Pillow Image object representing the image at ``path``
-
-        """
-        with rawpy.imread(path) as raw:
-            mat = raw.postprocess()
-        return Image.fromarray(mat)
-
-    def crop_all_files(self) -> None:
-        """Crop all files at the paths in the ``to_crop`` instance variable
-
-        Validates that the user has selected a region. Cropping is aborted
-        if :py:meth:`BatchCropper.crop_file` returns ``False``. See
-        :py:meth:`BatchCropper.crop_file` for details on the cropping itself.
+        Checks if a region is selected, then triggers
+        :py:meth:`BatchCropper.crop_all_files`.
 
         Returns:
             None
@@ -612,64 +490,331 @@ class BatchCropper(tk.Frame):
         if self.end_x is None or self.end_y is None:
             messagebox.showerror("Error", "Please select a region to crop.")
         else:
-            for path in self.to_crop:
-                continue_cropping = self.crop_file(path)
-                if not continue_cropping:
-                    return
+            self.crop_all_files()
 
-    def crop_file(self, path: str) -> bool:
-        """Save a copy of an image cropped to the region the user chose
+    def crop_all_files(self) -> None:
+        """Crop all files at the paths in :py:attr:`to_crop`
 
-        Crops the image at ``path`` to the same relative region as the user
-        selected on the template image. For example, if the selected region
-        takes up the middle ninth (in a 3x3 grid of equivalent rectangles) of
-        the image, the crop will be the middle ninth of the image at ``path``,
-        even if the two images have different dimensions.
+        Validates that the user has selected a region.
 
-        No validation is performed on ``path``. The user is asked to confirm,
-        skip, or abort before any file is over-written. The return value is used
-        to distinguish between aborting and skipping.
+        No validation is performed on :py:attr:`to_crop`. The user is asked to
+        confirm, skip, or abort before any file is over-written.
 
-        The cropped image is formatted as a JPEG.
-
-        Args:
-            path: The filepath of the image to crop
+        Each file is cropped using :py:meth:`crop_file`
 
         Returns:
-            ``True`` if cropping should continue, ``False`` otherwise.
+            None
 
         """
-        to_crop = BatchCropper.open_image(path)
-
-        left, upper, \
-        right, lower = BatchCropper.coor_to_box(self.start_x, self.start_y,
-                                                self.end_x, self.end_y)
-
-        left, upper, right, lower = tuple([val / self.scale_factor for val in
-                                           (left, upper, right, lower)])
-        left, right = tuple([val * to_crop.size[0] / self.orig_size[0]
-                             for val in (left, right)])
-        upper, lower = tuple([val * to_crop.size[1] / self.orig_size[1]
-                              for val in (upper, lower)])
-
-        cropped = to_crop.crop((left, upper, right, lower))
-        new_path = path + "_cropped.jpg"
-        if os.path.exists(new_path):
-            message = "The file '{}' already exists. Overwrite with new " \
-                      "crop? Select 'Cancel' to abort, 'No' to skip, or " \
-                      "'Yes' to overwrite."
-            message = message.format(new_path)
-            choice = messagebox.askyesnocancel("Overwrite Warning", message)
-            if choice is None:
-                return False
-            elif choice:
-                cropped.save(new_path, "jpeg")
-                return True
+        for path in self.to_crop:
+            new_path = path + "_cropped.jpg"
+            if os.path.exists(new_path):
+                message = "The file '{}' already exists. Overwrite with new " \
+                          "crop? Select 'Cancel' to abort, 'No' to skip, or " \
+                          "'Yes' to overwrite."
+                message = message.format(new_path)
+                choice = messagebox.askyesnocancel("Overwrite Warning", message)
+                if choice is None:
+                    return
+                elif choice:
+                    crop_file(self.get_coors_ratios(), path, new_path)
             else:
-                return True
-        else:
-            cropped.save(new_path, "jpeg")
-            return True
+                crop_file(self.get_coors_ratios(), path, new_path)
+
+
+def crop_file(box_ratio: Tuple[float, float, float, float],
+              in_path: str, out_path: str) -> None:
+    """Save a copy of an image cropped to a specified region
+
+    Crops the image at ``in_path`` to the same relative region as the user
+    selected on the template image. For example, if the selected region
+    takes up the middle ninth (in a 3x3 grid of equivalent rectangles) of
+    the image, the crop will be the middle ninth of the image at ``path``,
+    even if the two images have different dimensions.
+
+    No validation is performed on ``in_path``.
+
+    The cropped image is formatted as a JPEG and saved to ``out_path``. Any
+    existing file at ``out_path`` may be overwritten.
+
+    The cropped image is created using :py:meth:`crop_image`.
+
+    Args:
+        box_ratio: A ``box_ratio`` (See :doc:`units`) that describes the region
+            to crop
+        in_path: The path of the image to crop
+        out_path: The path of the file to save the cropped image to
+
+    Returns:
+        ``True`` if cropping should continue, ``False`` otherwise.
+
+    """
+    to_crop = open_image(in_path)
+    cropped = crop_image(box_ratio, to_crop)
+    cropped.save(out_path, "jpeg")
+
+
+def crop_image(box_ratio: Tuple[float, float, float, float], image: Image):
+    """Generate a copy of an image cropped to a specified region
+
+    Args:
+        box_ratio: A ``box_ratio`` (See :doc:`units`) that defines the region to
+            crop
+        image: The image to crop
+
+    Returns:
+        The cropped image
+
+    """
+    box_coor = ratios_to_coors(image.size, box_ratio)
+    box = coor_to_box(box_coor)
+    cropped = image.crop(box)
+    return cropped
+
+
+def scale_image(scale_factor: float, image_raw: Image) -> Image:
+    """Scale the provided image to fit within a 500x500 box
+
+    The image's shape is not changed, the largest dimension is just forced
+    to be 500. The factor by which the image is scaled is stored as the
+    :py:attr:`scale_factor` attribute.
+
+    Args:
+        scale_factor: The factor by which the image's width and height are
+            re-sized
+        image_raw: The image to re-size
+
+    Returns:
+        The re-sized image
+
+    """
+    width, height = image_raw.size
+    new_width = int(width * scale_factor)
+    new_height = int(height * scale_factor)
+    return image_raw.resize((new_width, new_height))
+
+
+def get_scale_factor(max_dimen: float, image_raw: Image) -> float:
+    """Get the factor by which to scale ``image_raw`` based on ``max_dimen``
+
+    Args:
+        max_dimen: What to scale the largest dimension of the image to
+        image_raw: The image to scale
+
+    Returns:
+        The scaled image
+
+    """
+    width, height = image_raw.size
+    return max_dimen / max(width, height)
+
+
+def coor_to_box(coors: Tuple[float, float, float, float])\
+        -> Tuple[float, float, float, float]:
+    """Convert start and end coors into left, upper, right, and lower bounds
+
+    This is useful for converting between the Tkinter concept of start
+    and end coordinates and the ``Image.crop(...)`` concept of bounds.
+
+    Args:
+        coors: The ``box_coor`` to convert to a ``box``
+
+    Returns:
+        A Tuple of bounds of the form
+
+        .. code-block:: python
+
+           left_bound, upper_bound, right_bound, lower_bound
+
+        that represents the region to crop. The bounds represent values on
+        the same coordinate system as normal.
+
+    """
+    start_x, start_y, end_x, end_y = coors
+    left = min(start_x, end_x)
+    right = max(start_x, end_x)
+    upper = min(start_y, end_y)
+    lower = max(start_y, end_y)
+
+    return left, upper, right, lower
+
+
+def coors_to_ratios(image_size: Tuple[int, int],
+                    coors: Tuple[float, float, float, float])\
+        -> Tuple[float, float, float, float]:
+    """Convert a ``box_coor`` to a ``box_ratio``
+
+    Args:
+        image_size: The size of the image that is the context for ``coors``
+        coors: ``box_coor`` to convert
+
+    Returns:
+        The ``box_ratio``
+
+    """
+    x1, y1, x2, y2 = coors
+    width, height = image_size
+    x1, x2 = tuple([val / width for val in (x1, x2)])
+    y1, y2 = tuple([val / height for val in (y1, y2)])
+    return x1, y1, x2, y2
+
+
+def ratios_to_coors(image_size: Tuple[float, float],
+                    ratios: Tuple[float, float, float, float]) -> \
+        Tuple[float, float, float, float]:
+    """Convert a ``box_ratio`` to a ``box_coor``
+
+    Args:
+        image_size: Size of image that is the context for ``box_coor``
+        ratios: The ``box_ratio`` to convert
+
+    Returns:
+        The ``box_coor``
+
+    """
+    x1, y1, x2, y2 = ratios
+    width, height = image_size
+    x1, x2 = tuple([ratio * width for ratio in (x1, x2)])
+    y1, y2 = tuple([ratio * height for ratio in (y1, y2)])
+
+    return x1, y1, x2, y2
+
+
+def gen_ratios_config(box_ratio: Tuple[float, float, float, float]) \
+        -> configparser.ConfigParser:
+    """Create the configuration that stores the provided box
+
+    The configuration is stored under the section ``crop-coordinates`` in the
+    following format INI, given ``box_ratio = (x1, y1, x2, y2)``:
+
+    .. code-block:: ini
+
+       [crop-coordinates]
+       start_x = {x1}
+       start_y = {y2}
+       end_x = {x2}
+       end_y = {y2}
+
+    substituting ``{...}`` for the value of the variable in braces.
+
+    Args:
+        box_ratio: The box_ratio to generate a configuration for
+
+    Returns:
+        The configuration
+
+    """
+    start_x, start_y, end_x, end_y = box_ratio
+    config = configparser.ConfigParser()
+    config["crop-coordinates"] = {"start_x": start_x, "start_y": start_y,
+                                  "end_x": end_x, "end_y": end_y}
+    return config
+
+
+def save_ratios_to_file(box_ratio: Tuple[float, float, float, float],
+                       path: str) -> None:
+    """Save the configuration for the ``box_ratio`` to the specified INI file
+
+    The configuration is generated by :py:meth:`gen_coors_config`.
+
+    Args:
+        box_ratio: The ``box_ratio`` to store in the file
+        path: The path to the INI file to store the configuration in. The file
+            should be empty.
+
+    Returns:
+        None
+
+    """
+    config = gen_ratios_config(box_ratio)
+    header = ["This file stores the coordinates of a selection made with",
+              "batch_crop.py, which is hosted at",
+              "https://github.com/U8NWXD/batch_crop",
+              "File Created: {}".format(datetime.now())]
+    with open(path, "w") as configfile:
+        configfile.writelines(["# " + line + "\n" for line in header])
+        config.write(configfile)
+
+
+def get_ratios_from_file(path: str) -> Tuple[float, float, float, float]:
+    """Get a ``box_ratio`` from a configuration file
+
+    The configuration file should have been generated by
+    :py:meth:`save_ratios_to_file`. The configuration in the file is converted
+    to a ``box_ratio`` by :py:meth:`get_ratios_from_config`.
+
+    Args:
+        path: Path to configuration INI file
+
+    Returns:
+        ``box_ratio`` that was described by the file
+
+    """
+    config = configparser.ConfigParser()
+    config.read(path)
+    return get_ratios_from_config(config)
+
+
+def get_ratios_from_config(config: configparser.ConfigParser) \
+        -> Tuple[float, float, float, float]:
+    """Get a ``box_ratio`` from a configuration
+
+    Args:
+        config: INI configuration describing the ``box_ratio`` to read
+
+    Returns:
+        ``box_ratio`` described by the configuration
+
+    """
+    coor_conf = config["crop-coordinates"]
+    # Remember these are ratios
+    start_x = coor_conf.getfloat("start_x")
+    start_y = coor_conf.getfloat("start_y")
+    end_x = coor_conf.getfloat("end_x")
+    end_y = coor_conf.getfloat("end_y")
+
+    return start_x, start_y, end_x, end_y
+
+
+def open_image(path: str) -> Image:
+    """Attempt to open an image, using a method appropriate for the format
+
+    Supported image types: RAW / ARW and those supported by Pillow.
+    Errors are not handled. Format is determined by file extension.
+
+    Args:
+        path: Path to the image. Must correctly point to a supported image
+            type.
+
+    Returns:
+        A Pillow Image object loaded from ``path``
+
+    """
+    base, ext = os.path.splitext(path)
+    ext = ext.lower()
+    if ext == ".arw" or ext == ".raw":
+        image = open_raw_image(path)
+    else:
+        image = Image.open(path)
+
+    return image
+
+
+def open_raw_image(path: str) -> Image:
+    """Open RAW-formatted image using ``rawpy``
+
+    No format checking or error handling is performed.
+
+    Args:
+        path: Path to the image. Must be correct.
+
+    Returns:
+        A Pillow Image object representing the image at ``path``
+
+    """
+    with rawpy.imread(path) as raw:
+        mat = raw.postprocess()
+    return Image.fromarray(mat)
 
 
 if __name__ == "__main__":
