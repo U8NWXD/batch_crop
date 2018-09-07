@@ -6,13 +6,19 @@ A Python utility for batch cropping images
 
 ## Requirements
 * Python 3.6
-* Tkinter
 * Rawpy
 * Pillow
-* Numpy
-* Contents of `requirements.txt`
 
-## Usage
+Once you have Python 3.6, you can load the other requirements by executing
+`pip install -r requirements.txt`.
+
+## Getting Started
+
+To download the latest code, run 
+
+`$ git clone https://github.com/U8NWXD/batch_crop`
+
+Then, after satisfying the requirements, launch the application by running
 
 `python batch_crop.py`
 
@@ -43,6 +49,11 @@ images
 
 where `img1.ARW_cropped.jpg` and `img2.ARW_cropped.jpg` store cropped forms of
 `img1.ARW` and `img2.ARW` respectively.
+
+## Contributing and Developer Documentation
+
+Developer documentation is hosted at [readthedocs](https://readthedocs.io) at
+this link: https://batch-crop.readthedocs.io/en/latest/
 
 ## Legal
 Copyright (c) 2018  U8N WXD <cs.temporary@icloud.com>

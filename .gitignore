@@ -1,3 +1,5 @@
 venv
 .idea
-images
+docs/_build
+docs/venv
+*__pycache__*
