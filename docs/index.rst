@@ -12,16 +12,35 @@ Welcome to batch_crop's documentation!
    :caption: Contents:
 
    modules
+   contributing
 
 ``batch_crop`` is a Python utility for cropping lots of images at once and
 uniformly. This is the developer documentation. If you are just interested in
 using ``batch_crop``, see the README at the root of the repository. This project
 is hosted on GitHub at https://github.com/U8NWXD/batch_crop.
 
-Contributing
-============
+Getting Started
+===============
 
+#. Install Python 3.6
 
+#. Clone repository:
+
+   .. code-block:: console
+
+      $ git clone https://github.com/U8NWXD/batch_crop
+
+#. Install requirements:
+
+   .. code-block:: console
+
+      $ pip install -r requirements.txt
+
+#. Run:
+
+   .. code-block:: console
+
+      python batch_crop.py
 
 Indices and tables
 ==================

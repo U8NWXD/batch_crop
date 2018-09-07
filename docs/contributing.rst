@@ -2,16 +2,16 @@
 Contributing
 ============
 
-Thank you for your interest in contributing to CultureMesh Android!
+Thank you for your interest in contributing!
 Here are a few steps to get you up and running:
 
 #. Follow the instructions in :doc:`index` to get set up with the
-   code base and Android Studio.
+   code base.
 #. Open an issue on
-   `GitHub <https://github.com/DrewGregory/CultureMeshAndroid>`_
+   `GitHub <https://github.com/U8NWXD/batch_crop>`_
    describing the changes you'd like to make. This is important
-   beacuse your idea might already be in development or might not
-   match the direction we are planning to take the app in. Reaching
+   because your idea might already be in development or might not
+   match existing plans. Reaching
    out to describe your proposal first will help avoid unnecessary
    work. You should also offer to work on it so people know not to
    do it themselves.
@@ -59,7 +59,7 @@ Here are a few steps to get you up and running:
      $ git push --set-upstream origin your_branch_name
 
 #. Create a pull request describing your changes and why they were
-   made. Use the ``develop`` branch as the base for your pull request.
+   made. Use the ``master`` branch as the base for your pull request.
 #. Before your pull request can be accepted, it must be reviewed.
    Your reviewer may suggest changes, which you should then make or
    explain why they aren't needed. This is a way to create dialogue
