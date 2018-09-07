@@ -178,7 +178,7 @@ class BatchCropper(tk.Frame):
         Meant to be triggered by tkinter when user selects a button. The user
         is allowed to choose an image, which then is displayed. All images of
         the same extension and in the same directory, including the displayed
-        image, have their paths stored in :py:attr:to_crop. The instruction
+        image, have their paths stored in :py:attr:`to_crop`. The instruction
         text is updated to tell the user to select a region.
 
         Returns:
@@ -223,7 +223,7 @@ class BatchCropper(tk.Frame):
 
         The image's shape is not changed, the largest dimension is just forced
         to be 500. The factor by which the image is scaled is stored as the
-        :py:attr:scale_factor attribute.
+        :py:attr:`scale_factor` attribute.
 
         Args:
             image_raw: The image to re-size
@@ -273,7 +273,7 @@ class BatchCropper(tk.Frame):
     def get_coors_ratios(self) -> Tuple[float, float, float, float]:
         """Get ratios that represent the coordinates of the current region
 
-        See :py:meth:BatchCropper.set_coors_ratios for an explanation of ratios.
+        See :py:meth:`BatchCropper.set_coors_ratios` for an explanation of ratios.
 
         Returns:
             A Tuple of the ratios in the form
@@ -334,7 +334,7 @@ class BatchCropper(tk.Frame):
 
         The user is shown a dialog to select where to save the generated INI
         file. This coordinates can be later loaded using
-        :py:meth:BatchCropper.callback_load_coors.
+        :py:meth:`BatchCropper.callback_load_coors`.
 
         Returns:
             None
@@ -371,7 +371,7 @@ class BatchCropper(tk.Frame):
 
         The user is shown a dialog to choose the file from which coordinates
         are loaded. The INI file should be created using the
-        :py:meth:BatchCropper.callback_save_coors method. The coordinates
+        :py:meth:`BatchCropper.callback_save_coors` method. The coordinates
         specified in the file are used to create a region that is stored and
         displayed as if the user had selected it.
 
@@ -415,7 +415,7 @@ class BatchCropper(tk.Frame):
     def callback_mouse_down(self, event) -> None:
         """Start drawing out a rectangle
 
-        The rectangle is started using :py:meth:BatchCropper.make_or_reuse_rect.
+        The rectangle is started using :py:meth:`BatchCropper.make_or_reuse_rect`.
 
         This callback is meant to be bound using
         Tkinter to the mouse move event. Tkinter will then pass the
@@ -460,7 +460,7 @@ class BatchCropper(tk.Frame):
 
         This allows the user to drag out the rectangle. The rectangle is only
         changed if the mouse button is down (checked by member variables
-        :py:attr:end_x and :py:attr:end_y being ``None`` if button down).
+        :py:attr:`end_x` and :py:attr:`end_y` being ``None`` if button down).
 
         This callback is meant to be bound using
         Tkinter to the mouse move event. Tkinter will then pass the
@@ -495,7 +495,7 @@ class BatchCropper(tk.Frame):
     def callback_about() -> None:
         """Display the project's about text as stored in :file:about.txt
 
-        See :py:meth:display_block for the details of how the text is displayed.
+        See :py:meth:`display_block` for the details of how the text is displayed.
 
         Returns:
             None
@@ -509,7 +509,7 @@ class BatchCropper(tk.Frame):
     def callback_license() -> None:
         """Display the project's license as stored in :file:LICENSE.txt
 
-        See :py:meth:display_block for the details of how the text is displayed.
+        See :py:meth:`display_block` for the details of how the text is displayed.
 
         Returns:
             None
@@ -602,8 +602,8 @@ class BatchCropper(tk.Frame):
         """Crop all files at the paths in the ``to_crop`` instance variable
 
         Validates that the user has selected a region. Cropping is aborted
-        if :py:meth:BatchCropper.crop_file returns ``False``. See
-        :py:meth:BatchCropper.crop_file for details on the cropping itself.
+        if :py:meth:`BatchCropper.crop_file` returns ``False``. See
+        :py:meth:`BatchCropper.crop_file` for details on the cropping itself.
 
         Returns:
             None
