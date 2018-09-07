@@ -12,6 +12,7 @@ Welcome to batch_crop's documentation!
    :caption: Contents:
 
    modules
+   units
    contributing
 
 ``batch_crop`` is a Python utility for cropping lots of images at once and
