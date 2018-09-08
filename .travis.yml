@@ -2,6 +2,8 @@ language: python
 python:
   - "3.6"
 # command to install dependencies
+install:
+  - pip install -r requirements_tests.txt
 script:
   - python -m pytest
   - find batch_crop -name *.py | xargs pylint
