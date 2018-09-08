@@ -7,6 +7,8 @@ Here are a few steps to get you up and running:
 
 #. Follow the instructions in :doc:`index` to get set up with the
    code base.
+#. To run the tests, you will need some more packages. Install them by running
+   ``pip install -r requirements_test.txt``
 #. Open an issue on
    `GitHub <https://github.com/U8NWXD/batch_crop>`_
    describing the changes you'd like to make. This is important
@@ -52,6 +54,56 @@ Here are a few steps to get you up and running:
      important to include because it might not be clear from your
      code changes alone.
 
+#. Test your changes by executing ``./test.sh``. Ideally you won't have broken
+   anything, in which case you'll see something like this:
+
+   .. code-block:: console
+
+      ==================== test session starts ====================
+      platform darwin -- Python 3.6.5, pytest-3.8.0, py-1.6.0, pluggy-0.7.1
+      hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase('batch_crop/.hypothesis/examples')
+      rootdir: batch_crop, inifile: pytest.ini
+      plugins: cov-2.6.0, hypothesis-3.70.3
+      collected 9 items
+
+      batch_crop/batch_crop.py ..                             [ 22%]
+      tests/src/test_batch_crop.py .......                    [100%]
+
+      ---------- coverage: platform darwin, python 3.6.5-final-0 -----------
+      Name                       Stmts   Miss  Cover
+      ----------------------------------------------
+      batch_crop/__init__.py         0      0   100%
+      batch_crop/batch_crop.py     249    171    31%
+      ----------------------------------------------
+      TOTAL                        249    171    31%
+
+
+      ================== 9 passed in 10.07 seconds ==================
+
+      --------------------------------------------------------------------
+      Your code has been rated at 10.00/10 (previous run: 10.00/10, +0.00)
+
+
+      -------------------------------------------------------------------
+      Your code has been rated at 10.00/10 (previous run: 9.80/10, +0.20)
+
+   However, things rarely go that well. If there are any problems flagged, make
+   the needed changes, add exceptions like
+   ``# pylint: disable=missing-docstring``, or change the test case. Be careful
+   with the later two, though, and carefully consider whether the behavior you
+   are seeing is really correct.
+
+   Ideally, you would write the tests first. This is called test-driven
+   development, and it helps you nail down what your code should do before
+   starting to write it. This is up to you, though.
+#. Add tests that check the changes you made. This helps keep anyone else from
+   later breaking your code.
+#. Add documentation that describes your changes. Most code can just be
+   documented with docstrings (enclosed in triple-quotes), but if you are
+   introducing a new concept or abstraction, the ``.rst`` files might need
+   updating too. Remember that the code inside methods should rarely need
+   documentation to understand what it's doing. Clear code is the best kind of
+   documentation!
 #. Push your changes:
 
    .. code-block:: console
@@ -66,8 +118,3 @@ Here are a few steps to get you up and running:
    about changes, which generally enhances code quality.
 #. Once your pull request is accepted, you can delete your branch.
 
-.. warning::
-
-  There are currently no automated tests for this project.
-  Unfortunately, this means you will have to test manually to ensure
-  your changes don't break anything.

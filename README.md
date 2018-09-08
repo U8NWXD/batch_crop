@@ -4,6 +4,8 @@ A Python utility for batch cropping images
 
 [![GPL Licence](https://badges.frapsoft.com/os/gpl/gpl.png?v=103)](LICENSE.txt)
 [![Documentation Status](https://readthedocs.org/projects/batch-crop/badge/?version=latest)](https://batch-crop.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.com/U8NWXD/batch_crop.svg?branch=master)](https://travis-ci.com/U8NWXD/batch_crop)
+[![codecov](https://codecov.io/gh/U8NWXD/batch_crop/branch/master/graph/badge.svg)](https://codecov.io/gh/U8NWXD/batch_crop)
 
 ## Requirements
 * Python 3.6
