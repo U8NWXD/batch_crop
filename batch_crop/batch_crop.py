@@ -14,21 +14,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import tkinter as tk
-import rawpy
-import os
-import configparser
-from datetime import datetime
-from tkinter.filedialog import askopenfilename, asksaveasfilename
-from tkinter import messagebox
-from os.path import isfile, join
-from PIL import Image, ImageTk
-from sys import exit
-from typing import Tuple
 
 """Crop files in bulk, maintaining the crop region's relative position
 
 """
+
+import os
+from os.path import isfile, join
+import configparser
+from datetime import datetime
+import tkinter as tk
+from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter import messagebox
+from typing import Tuple, List
+
+import rawpy
+from PIL import Image, ImageTk
 
 
 def display_block(title: str, content: str) -> None:
@@ -65,6 +66,9 @@ def display_block(title: str, content: str) -> None:
     text.insert(tk.END, content)
 
     second.mainloop()
+
+
+# pylint: disable=too-many-instance-attributes, too-many-ancestors
 
 
 class BatchCropper(tk.Frame):
@@ -112,15 +116,16 @@ class BatchCropper(tk.Frame):
         self.window = window
 
         # Initialize instance fields for later
-        self.scale_factor = 1
-        self.image_tk = None
-        self.to_crop = None
-        self.start_x = None
-        self.start_y = None
-        self.end_x = None
-        self.end_y = None
-        self.rect = None
-        self.orig_size = None
+        self.scale_factor = 1  # type: float
+        self.image_tk = None  # type: ImageTk.PhotoImage
+        self.to_crop = []  # type: List[str]
+        self.start_x = -1  # type: float
+        self.start_y = -1  # type: float
+        self.end_x = -1  # type: float
+        self.end_y = -1  # type: float
+        self.rect = None  # type: ignore
+        self.rect: tk.Canvas
+        self.orig_size = -1, -1  # type: Tuple[float, float]
 
         self.canvas = tk.Canvas(self.window, width=500, height=500)
         self.canvas.pack()
@@ -277,10 +282,10 @@ class BatchCropper(tk.Frame):
             None
 
         """
-        if self.to_crop is None:
+        if len(self.to_crop) == 0:  # pylint: disable=len-as-condition
             messagebox.showerror("Error", "Please load an image first.")
             return
-        if self.end_x is None or self.end_y is None:
+        if self.end_x < 0 or self.end_y < 0:
             messagebox.showerror("Error", "Please select a region first.")
             return
 
@@ -310,7 +315,7 @@ class BatchCropper(tk.Frame):
             None
 
         """
-        if self.to_crop is None:
+        if len(self.to_crop) == 0:  # pylint: disable=len-as-condition
             messagebox.showerror("Error", "Please load an image first.")
             return
 
@@ -350,8 +355,8 @@ class BatchCropper(tk.Frame):
         """
         self.start_x = event.x
         self.start_y = event.y
-        self.end_x = None
-        self.end_y = None
+        self.end_x = -1
+        self.end_y = -1
         self.make_or_reuse_rect(self.start_x, self.start_y)
 
     def make_or_reuse_rect(self, x: float, y: float) -> None:
@@ -516,7 +521,7 @@ class BatchCropper(tk.Frame):
                 choice = messagebox.askyesnocancel("Overwrite Warning", message)
                 if choice is None:
                     return
-                elif choice:
+                if choice:
                     crop_file(self.get_coors_ratios(), path, new_path)
             else:
                 crop_file(self.get_coors_ratios(), path, new_path)
@@ -616,6 +621,11 @@ def coor_to_box(coors: Tuple[float, float, float, float])\
     This is useful for converting between the Tkinter concept of start
     and end coordinates and the ``Image.crop(...)`` concept of bounds.
 
+    >>> coors = (5, 3, 1, 2)
+    >>> coor_to_box(coors)
+    (1, 2, 5, 3)
+
+
     Args:
         coors: The ``box_coor`` to convert to a ``box``
 
@@ -639,10 +649,15 @@ def coor_to_box(coors: Tuple[float, float, float, float])\
     return left, upper, right, lower
 
 
-def coors_to_ratios(image_size: Tuple[int, int],
+def coors_to_ratios(image_size: Tuple[float, float],
                     coors: Tuple[float, float, float, float])\
         -> Tuple[float, float, float, float]:
     """Convert a ``box_coor`` to a ``box_ratio``
+
+    >>> image_size = 10, 100
+    >>> coors = 1, 2, 5, 4
+    >>> coors_to_ratios(image_size, coors)
+    (0.1, 0.02, 0.5, 0.04)
 
     Args:
         image_size: The size of the image that is the context for ``coors``
@@ -706,8 +721,10 @@ def gen_ratios_config(box_ratio: Tuple[float, float, float, float]) \
     """
     start_x, start_y, end_x, end_y = box_ratio
     config = configparser.ConfigParser()
-    config["crop-coordinates"] = {"start_x": start_x, "start_y": start_y,
-                                  "end_x": end_x, "end_y": end_y}
+    config["crop-coordinates"] = {"start_x": str(start_x),
+                                  "start_y": str(start_y),
+                                  "end_x": str(end_x),
+                                  "end_y": str(end_y)}
     return config
 
 
@@ -790,9 +807,9 @@ def open_image(path: str) -> Image:
         A Pillow Image object loaded from ``path``
 
     """
-    base, ext = os.path.splitext(path)
+    _, ext = os.path.splitext(path)
     ext = ext.lower()
-    if ext == ".arw" or ext == ".raw":
+    if ext in (".arw", ".raw"):
         image = open_raw_image(path)
     else:
         image = Image.open(path)
@@ -818,7 +835,7 @@ def open_raw_image(path: str) -> Image:
 
 
 if __name__ == "__main__":
-    master = tk.Tk()
-    app = BatchCropper(master)
-    app.master.title("batch_crop")
-    master.mainloop()
+    MASTER = tk.Tk()
+    APP = BatchCropper(MASTER)
+    APP.master.title("batch_crop")  # type: ignore
+    MASTER.mainloop()
