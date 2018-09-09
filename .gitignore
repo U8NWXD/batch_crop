@@ -1,7 +1,6 @@
-venv
+*venv*
 .idea
 docs/_build
-docs/venv
 *__pycache__*
 *_cache
 .coverage
