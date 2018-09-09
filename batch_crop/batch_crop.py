@@ -124,7 +124,6 @@ class BatchCropper(tk.Frame):
         self.end_x = -1  # type: float
         self.end_y = -1  # type: float
         self.rect = None  # type: ignore
-        self.rect: tk.Canvas
         self.orig_size = -1, -1  # type: Tuple[float, float]
 
         self.canvas = tk.Canvas(self.window, width=500, height=500)
