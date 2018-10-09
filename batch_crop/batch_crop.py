@@ -400,7 +400,7 @@ class BatchCropper(tk.Frame):
         cur_x = event.x
         cur_y = event.y
 
-        if self.end_x is None and self.end_y is None:
+        if self.end_x == -1 and self.end_y == -1:
             self.resize_rect(self.start_x, self.start_y, cur_x, cur_y)
 
     @staticmethod
