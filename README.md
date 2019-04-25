@@ -8,11 +8,11 @@ A Python utility for batch cropping images
 [![codecov](https://codecov.io/gh/U8NWXD/batch_crop/branch/master/graph/badge.svg)](https://codecov.io/gh/U8NWXD/batch_crop)
 
 ## Requirements
-* Python 3.6
+* Python 3.7
 * Rawpy
 * Pillow
 
-Once you have Python 3.6, you can load the other requirements by executing
+Once you have Python 3.7, you can load the other requirements by executing
 `pip install -r requirements.txt`.
 
 ## Getting Started
