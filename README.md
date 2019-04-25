@@ -53,6 +53,9 @@ images
 where `img1.ARW_cropped.jpg` and `img2.ARW_cropped.jpg` store cropped forms of
 `img1.ARW` and `img2.ARW` respectively.
 
+Note that on macOS Mojave you may need to use light mode and slightly
+resize the window in order to see the button labels.
+
 ## Contributing and Developer Documentation
 
 Developer documentation is hosted at [readthedocs](https://readthedocs.io) at
