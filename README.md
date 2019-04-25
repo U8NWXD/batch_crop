@@ -59,6 +59,8 @@ Developer documentation is hosted at [readthedocs](https://readthedocs.io) at
 this link: https://batch-crop.readthedocs.io/en/latest/
 
 ## Legal
+
+### Copyright and License
 Copyright (c) 2018  U8N WXD <cs.temporary@icloud.com>
 
 This program is free software: you can redistribute it and/or modify
@@ -73,3 +75,15 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+### Copyright Deviations
+
+The changes made by the following commits are dedicated to the public
+domain:
+
+* e5fa5545af4c6be648cf146a032d865164508d85
+* d78af0a84c02fbd0547905fa00a3af417fb9d691
+* ad9e895f95acb5cd1afa3bd57ad7d06be657cf11
+
+Other commits may also have particular copyrights and/or licensing
+terms, which are noted in the commit message.
