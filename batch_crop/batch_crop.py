@@ -330,14 +330,14 @@ class BatchCropper(tk.Frame):
             return
 
         self.set_coors_ratios(ratios)
-        self.make_or_reuse_rect(self.start_x, self.start_y)
+        self.replace_rect(self.start_x, self.start_y)
         self.resize_rect(self.start_x, self.start_y, self.end_x, self.end_y)
 
     def callback_mouse_down(self, event) -> None:
         """Start drawing out a rectangle
 
         The rectangle is started using
-        :py:meth:`BatchCropper.make_or_reuse_rect`.
+        :py:meth:`BatchCropper.replace_rect`.
 
         This callback is meant to be bound using
         Tkinter to the mouse move event. Tkinter will then pass the
@@ -356,12 +356,12 @@ class BatchCropper(tk.Frame):
         self.start_y = event.y
         self.end_x = -1
         self.end_y = -1
-        self.make_or_reuse_rect(self.start_x, self.start_y)
+        self.replace_rect(self.start_x, self.start_y)
 
-    def make_or_reuse_rect(self, x: float, y: float) -> None:
-        """Create a new rectangle or reset one if it already exists
+    def replace_rect(self, x: float, y: float) -> None:
+        """Create a new rectangle
 
-        The created or reset rectangle will have identical start and end
+        The created rectangle will have identical start and end
         coordinates.
 
         Args:
@@ -372,10 +372,8 @@ class BatchCropper(tk.Frame):
             None
 
         """
-        if self.rect is None:
-            self.rect = self.canvas.create_rectangle(x, y, x, y, outline="red")
-        else:
-            self.resize_rect(x, y, x, y)
+        self.canvas.delete(self.rect)
+        self.rect = self.canvas.create_rectangle(x, y, x, y, outline="red")
 
     def callback_mouse_move(self, event) -> None:
         """Expand the displayed selected region to follow the cursor
