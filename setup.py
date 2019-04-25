@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='batch_crop',
-    version='1.0.1',
+    version='1.0.2',
     packages=['batch_crop'],
     url='https://www.github.com/U8NWXD/batch_crop',
     license='AGPLv3',
