@@ -1,5 +1,9 @@
 # `batch_crop`
 
+**WARNING: This repository is no longer maintained due to lack of use.
+If you are interested in using this software, please let me know. I may
+be able to start maintaining it again.**
+
 A Python utility for batch cropping images
 
 [![GPL Licence](https://badges.frapsoft.com/os/gpl/gpl.png?v=103)](LICENSE.txt)
@@ -17,7 +21,7 @@ Once you have Python 3.7, you can load the other requirements by executing
 
 ## Getting Started
 
-To download the latest code, run 
+To download the latest code, run
 
 `$ git clone https://github.com/U8NWXD/batch_crop`
 
@@ -37,8 +41,8 @@ images
 Running `python batch_crop.py` opens a window with a button to `Load Image`.
 Clicking that and selecting either `img1.ARW` or `img2.ARW` loads the selected
 image into the window. You can then click-and-drag to draw a box on the
-image. When happy with the selection, click `Crop All Matching Images` to crop 
-all images in the `images` directory with the `ARW` extension to the box drawn. 
+image. When happy with the selection, click `Crop All Matching Images` to crop
+all images in the `images` directory with the `ARW` extension to the box drawn.
 This creates a directory that looks like this:
 
 ```
